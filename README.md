@@ -34,8 +34,8 @@ Built with [Next.js](https://nextjs.org/), [Vercel AI SDK](https://sdk.vercel.ai
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd automated-test-generator
+git clone https://github.com/EddieSilveira/test-generator.git
+cd test-generator
 ```
 
 ### 2. Install dependencies
