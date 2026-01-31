@@ -84,25 +84,22 @@ export default function Chat() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Header */}
-      <div className="border-b border-zinc-800 px-6 py-4">
-        <h1 className="text-xl font-semibold text-zinc-100">⚡ Test Generator</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Paste your code and generate automated tests</p>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+      <div className="border-b border-zinc-800 px-4 md:px-6 py-3 md:py-4 shrink-0">
+        <h1 className="text-lg md:text-xl font-semibold text-zinc-100">⚡ Test Generator</h1>
+        <p className="text-xs md:text-sm text-zinc-500 mt-0.5">Paste your code and generate automated tests</p>
       </div>
 
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Left Panel - Input */}
-        <div className="w-1/2 flex flex-col border-r border-zinc-800">
-          {/* Controls */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 bg-zinc-900">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
+        <div className="w-full md:w-1/2 flex flex-col md:border-r border-zinc-800 border-b md:border-b-0">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 border-b border-zinc-800 bg-zinc-900 shrink-0">
             <span className="text-xs text-zinc-500">Framework:</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap">
               {FRAMEWORKS.map(fw => (
                 <button
                   key={fw}
                   onClick={() => setFramework(fw)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${framework === fw
+                  className={`px-2 md:px-3 py-1 rounded text-xs font-medium transition-colors ${framework === fw
                     ? 'bg-blue-600 text-white'
                     : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                     }`}
@@ -118,7 +115,7 @@ export default function Chat() {
                   const example = EXAMPLES.find(ex => ex.title === e.target.value);
                   if (example) setCode(example.code);
                 }}
-                className="bg-zinc-800 text-zinc-300 text-xs px-3 py-1 rounded border border-zinc-700 cursor-pointer"
+                className="bg-zinc-800 text-zinc-300 text-xs px-2 md:px-3 py-1 rounded border border-zinc-700 cursor-pointer"
                 defaultValue=""
               >
                 <option value="" disabled>Examples...</option>
@@ -129,17 +126,16 @@ export default function Chat() {
             </div>
           </div>
 
-          {/* Textarea */}
           <textarea
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Paste your code here..."
-            className="flex-1 w-full bg-zinc-950 text-zinc-200 text-sm font-mono p-4 resize-none outline-none placeholder-zinc-600"
+            className="w-full bg-zinc-950 text-zinc-200 text-sm font-mono p-3 md:p-4 resize-none outline-none placeholder-zinc-600"
+            style={{ minHeight: '200px', flex: '1 1 auto' }}
             spellCheck={false}
           />
 
-          {/* Generate Button */}
-          <div className="p-4 border-t border-zinc-800 bg-zinc-900">
+          <div className="p-3 md:p-4 border-t border-zinc-800 bg-zinc-900 shrink-0">
             <button
               onClick={handleGenerate}
               disabled={!code.trim() || status === 'streaming' || status === 'submitted'}
@@ -150,11 +146,9 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* Right Panel - Output */}
-        <div className="w-1/2 flex flex-col">
-          {/* Output Toolbar */}
+        <div className="w-full md:w-1/2 flex flex-col min-h-0">
           {generatedCode && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
+            <div className="flex items-center justify-between px-3 md:px-4 py-2 border-b border-zinc-800 bg-zinc-900 shrink-0">
               <span className="text-xs text-zinc-500">Generated tests</span>
               <div className="flex gap-2">
                 <button
@@ -182,8 +176,7 @@ export default function Chat() {
             </div>
           )}
 
-          {/* Output */}
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-3 md:p-4" style={{ minHeight: '200px' }}>
             {(status === 'submitted' || status === 'streaming') && !generatedCode && (
               <div className="flex items-center gap-2 text-zinc-600 text-sm mt-8 justify-center">
                 <div className="w-4 h-4 border-2 border-zinc-600 border-t-blue-500 rounded-full animate-spin" />
