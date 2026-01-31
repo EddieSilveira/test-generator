@@ -1,65 +1,210 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
+import { Copy, Check, Download, RotateCcw } from 'lucide-react';
+
+const FRAMEWORKS = ['Vitest', 'Jest', 'React Testing Library'] as const;
+type Framework = typeof FRAMEWORKS[number];
+
+const EXAMPLES = [
+  {
+    title: 'Simple function',
+    code: `function sum(a: number, b: number): number {
+  return a + b;
+}
+
+function divide(a: number, b: number): number {
+  if (b === 0) throw new Error('Division by zero');
+  return a / b;
+}`
+  },
+  {
+    title: 'Email validator',
+    code: `function validateEmail(email: string): boolean {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+}`
+  },
+  {
+    title: 'Array handler',
+    code: `function removeDuplicates<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
+
+function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
+  return arr.reduce((acc, item) => {
+    const group = String(item[key]);
+    acc[group] = acc[group] || [];
+    acc[group].push(item);
+    return acc;
+  }, {} as Record<string, T[]>);
+}`
+  }
+];
+
+function extractCode(text: string): string {
+  const match = text.match(/```(?:typescript|ts|javascript|js)?\n([\s\S]*?)```/);
+  return match ? match[1].trim() : text;
+}
+
+export default function Chat() {
+  const [code, setCode] = useState('');
+  const [framework, setFramework] = useState<Framework>('Vitest');
+  const [copied, setCopied] = useState(false);
+  const { messages, sendMessage, regenerate, status } = useChat();
+
+  const lastResponse = [...messages].reverse().find(m => m.role === 'assistant');
+  const generatedCode = lastResponse
+    ? extractCode(lastResponse.parts.filter(p => p.type === 'text').map(p => p.text).join(''))
+    : '';
+
+  const handleGenerate = () => {
+    if (!code.trim() || status !== 'ready') return;
+    sendMessage({
+      text: `Framework: ${framework}\n\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nGenerate complete tests for this code.`
+    });
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const extension = framework === 'Jest' || framework === 'Vitest' ? '.test.ts' : '.spec.tsx';
+    const blob = new Blob([generatedCode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tests${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Header */}
+      <div className="border-b border-zinc-800 px-6 py-4">
+        <h1 className="text-xl font-semibold text-zinc-100">⚡ Test Generator</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">Paste your code and generate automated tests</p>
+      </div>
+
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Left Panel - Input */}
+        <div className="w-1/2 flex flex-col border-r border-zinc-800">
+          {/* Controls */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 bg-zinc-900">
+            <span className="text-xs text-zinc-500">Framework:</span>
+            <div className="flex gap-1">
+              {FRAMEWORKS.map(fw => (
+                <button
+                  key={fw}
+                  onClick={() => setFramework(fw)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${framework === fw
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    }`}
+                >
+                  {fw}
+                </button>
+              ))}
+            </div>
+
+            <div className="ml-auto">
+              <select
+                onChange={(e) => {
+                  const example = EXAMPLES.find(ex => ex.title === e.target.value);
+                  if (example) setCode(example.code);
+                }}
+                className="bg-zinc-800 text-zinc-300 text-xs px-3 py-1 rounded border border-zinc-700 cursor-pointer"
+                defaultValue=""
+              >
+                <option value="" disabled>Examples...</option>
+                {EXAMPLES.map(ex => (
+                  <option key={ex.title} value={ex.title}>{ex.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Textarea */}
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Paste your code here..."
+            className="flex-1 w-full bg-zinc-950 text-zinc-200 text-sm font-mono p-4 resize-none outline-none placeholder-zinc-600"
+            spellCheck={false}
+          />
+
+          {/* Generate Button */}
+          <div className="p-4 border-t border-zinc-800 bg-zinc-900">
+            <button
+              onClick={handleGenerate}
+              disabled={!code.trim() || status === 'streaming' || status === 'submitted'}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {status === 'streaming' || status === 'submitted' ? 'Generating...' : 'Generate Tests'}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Right Panel - Output */}
+        <div className="w-1/2 flex flex-col">
+          {/* Output Toolbar */}
+          {generatedCode && (
+            <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900">
+              <span className="text-xs text-zinc-500">Generated tests</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => regenerate()}
+                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                  title="Regenerate"
+                >
+                  <RotateCcw size={14} />
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                  title="Copy"
+                >
+                  {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                  title="Download"
+                >
+                  <Download size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Output */}
+          <div className="flex-1 overflow-auto p-4">
+            {(status === 'submitted' || status === 'streaming') && !generatedCode && (
+              <div className="flex items-center gap-2 text-zinc-600 text-sm mt-8 justify-center">
+                <div className="w-4 h-4 border-2 border-zinc-600 border-t-blue-500 rounded-full animate-spin" />
+                Generating tests...
+              </div>
+            )}
+
+            {generatedCode ? (
+              <pre className="text-sm font-mono text-zinc-300 whitespace-pre-wrap">{generatedCode}</pre>
+            ) : (
+              status === 'ready' && (
+                <div className="text-zinc-600 text-sm text-center mt-16">
+                  <p className="text-lg mb-2">👆</p>
+                  <p>Paste your code in the left panel</p>
+                  <p>and click "Generate Tests"</p>
+                </div>
+              )
+            )}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
